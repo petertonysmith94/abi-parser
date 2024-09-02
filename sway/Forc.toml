@@ -1,0 +1,5 @@
+[workspace]
+members = [
+  "./contract-tuple",
+  "./contract-tuple-alias",
+]

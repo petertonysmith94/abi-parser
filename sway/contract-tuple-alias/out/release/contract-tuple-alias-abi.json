@@ -1,0 +1,52 @@
+{
+  "programType": "contract",
+  "specVersion": "1",
+  "encodingVersion": "1",
+  "concreteTypes": [
+    {
+      "type": "()",
+      "concreteTypeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+    },
+    {
+      "type": "(u64, u64)",
+      "concreteTypeId": "41bd1a98f0a59642d8f824c805b798a5f268d1f7d05808eb05c4189c493f1be0",
+      "metadataTypeId": 0
+    }
+  ],
+  "metadataTypes": [
+    {
+      "type": "(u64, u64)",
+      "metadataTypeId": 0,
+      "components": [
+        {
+          "name": "__tuple_element",
+          "typeId": 1
+        },
+        {
+          "name": "__tuple_element",
+          "typeId": 1
+        }
+      ]
+    },
+    {
+      "type": "u64",
+      "metadataTypeId": 1
+    }
+  ],
+  "functions": [
+    {
+      "inputs": [
+        {
+          "name": "arg1",
+          "concreteTypeId": "41bd1a98f0a59642d8f824c805b798a5f268d1f7d05808eb05c4189c493f1be0"
+        }
+      ],
+      "name": "tuple",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": null
+    }
+  ],
+  "loggedTypes": [],
+  "messagesTypes": [],
+  "configurables": []
+}

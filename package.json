@@ -1,0 +1,15 @@
+{
+  "name": "sway-type-aliases",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "fuels build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fuels": "^0.94.3"
+  }
+}
