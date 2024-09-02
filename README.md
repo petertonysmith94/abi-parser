@@ -1,6 +1,6 @@
 ## Summary
 
-Sway [alias types](https://docs.fuel.network/docs/sway/advanced/advanced_types/) seem to defer from types defined inline.
+Sway [alias types](https://docs.fuel.network/docs/sway/advanced/advanced_types/) seem to differ from types defined inline.
 
 The `metadataTypes.type` for the tuple `(u64, u64)` is generated as `(_, _)` when defined inline, but as `(u64, u64)` when defined as an alias.
 
