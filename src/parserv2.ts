@@ -29,6 +29,16 @@ export class Parser {
     })
   }
 
+  private getByTypeId(typeId: number | string): { concreteType?: ConcreteTypeV1, metadataType?: MetadataTypeV1 } {
+    const isConcreteType = typeof typeId === 'string';
+    const concreteType = isConcreteType ? this.concreteTypes.get(typeId) : undefined;
+
+    const metadataTypeId = isConcreteType ? concreteType?.metadataTypeId : typeId;
+    const metadataType = metadataTypeId ? this.metadataTypes.get(metadataTypeId) : undefined;
+
+    return { concreteType, metadataType };
+  }
+
   public *iterator(inputs: readonly (number | string | (TypeArgumentV1 | ComponentV1))[] = []): IterableIterator<AggregateType> {
     let element;
     const stack = [...inputs];
@@ -42,23 +52,13 @@ export class Parser {
 
       // It's a component or type argument
       if (typeof element === 'object') {
-        const component = element as ComponentV1;
-
-        const isConcreteType = typeof component.typeId === 'string';
-        const concreteType = isConcreteType ? this.concreteTypes.get(component.typeId) : undefined;
-
-        const metadataTypeId = isConcreteType ? concreteType?.metadataTypeId : component.typeId;
-        const metadataType = metadataTypeId ? this.metadataTypes.get(metadataTypeId) : undefined;
-
-        // return;
+        // This could be either a ComponentV1 or a TypeArgumentV1
+        const component: ComponentV1 = element;
+        const { concreteType, metadataType } = this.getByTypeId(component.typeId);
         yield this.createAggregateType(concreteType, metadataType, component.name);
       } else {
-        const isConcreteType = typeof element === 'string';
-        const concreteType = isConcreteType ? this.concreteTypes.get(element) : undefined;
-
-        const metadataTypeId = isConcreteType ? concreteType?.metadataTypeId : element;
-        const metadataType = metadataTypeId ? this.metadataTypes.get(metadataTypeId) : undefined;
-
+        const typeId: string | number = element;
+        const { concreteType, metadataType } = this.getByTypeId(typeId);
         yield this.createAggregateType(concreteType, metadataType);
       }
     }
