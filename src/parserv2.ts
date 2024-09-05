@@ -1,20 +1,25 @@
-import { readFileSync } from "fs";
+import { readFileSync, ReadPosition } from "fs";
 import { join } from "path";
-import { ComponentV1, ConcreteTypeV1, JsonAbiV1, MetadataTypeV1, TypeArgumentV1 } from "./types";
+import { AbiFunctionInputV1, ComponentV1, ConcreteTypeV1, JsonAbiV1, MetadataTypeV1, TypeArgumentV1 } from "./types";
+
+interface ComponentArgument {
+  typeParameter: number;
+  typeArgument: string | TypeArgumentV1;
+}
 
 interface AggregateType {
   name?: string;
 
-  concreteType: string | undefined; // e.g. struct GenericNestedLevelOne<u8>
-  concreteTypeId: string | undefined; // e.g. 0x1234
+  // concreteType: string | undefined; // e.g. struct GenericNestedLevelOne<u8>
+  // concreteTypeId: string | undefined; // e.g. 0x1234
 
-  metadataType: string | undefined; // e.g. struct GenericNestedLevelOne
-  metadataTypeId: number | undefined; // e.g. 0x1234
+  // metadataType: string | undefined; // e.g. struct GenericNestedLevelOne
+  // metadataTypeId: number | undefined; // e.g. 0x1234
 
-  typeParameters?: readonly number[];
-  typeArguments?: AggregateType[];
+  componentArguments?: Record<number, string | TypeArgumentV1>;
   components?: AggregateType[];
 }
+
 
 export class Parser {
   private concreteTypes: Map<string, ConcreteTypeV1> = new Map();
@@ -29,7 +34,20 @@ export class Parser {
     })
   }
 
-  private getByTypeId(typeId: number | string): { concreteType?: ConcreteTypeV1, metadataType?: MetadataTypeV1 } {
+  private getByTypeId(typeId: number | string, parentTypeArguments: Record<number, string | TypeArgumentV1> = {}): { concreteType?: ConcreteTypeV1, metadataType?: MetadataTypeV1 } {
+    const parentTypeArgument = Object.keys(parentTypeArguments).find((key) => key === typeId.toString());
+    if (parentTypeArgument) {
+      const maybeConcreteId = parentTypeArguments[parentTypeArgument];
+
+      if (typeof maybeConcreteId === 'string') {
+        return this.getByTypeId(maybeConcreteId as string);
+      }
+
+      if (typeof maybeConcreteId === 'object') {
+        return this.getByTypeId(maybeConcreteId.typeId);
+      }
+    }
+    
     const isConcreteType = typeof typeId === 'string';
     const concreteType = isConcreteType ? this.concreteTypes.get(typeId) : undefined;
 
@@ -39,7 +57,23 @@ export class Parser {
     return { concreteType, metadataType };
   }
 
-  public *iterator(inputs: readonly (number | string | (TypeArgumentV1 | ComponentV1))[] = []): IterableIterator<AggregateType> {
+  public *iteratorFunctionInput(
+    inputs: readonly AbiFunctionInputV1[] = [],
+  ): IterableIterator<AggregateType> {
+    const inputIterator = this.iterator(inputs.map((input) => input.concreteTypeId));
+    
+    for (let i = 0; i < inputs.length; i++) {
+      const { value } = inputIterator.next();
+      if (value) {
+        yield { ...value, name: inputs[i].name };
+      }
+    }
+  }
+
+  public *iterator(
+    inputs: readonly (number | string | (TypeArgumentV1 | ComponentV1))[] = [],
+    parentTypeArguments: Record<number, string | TypeArgumentV1> = {}
+  ): IterableIterator<AggregateType> {
     let element;
     const stack = [...inputs];
 
@@ -54,34 +88,79 @@ export class Parser {
       if (typeof element === 'object') {
         // This could be either a ComponentV1 or a TypeArgumentV1
         const component: ComponentV1 = element;
-        const { concreteType, metadataType } = this.getByTypeId(component.typeId);
-        yield this.createAggregateType(concreteType, metadataType, component.name);
+        let { concreteType, metadataType } = this.getByTypeId(component.typeId, parentTypeArguments);
+        yield this.createAggregateType(concreteType, metadataType, component.name, parentTypeArguments);
       } else {
         const typeId: string | number = element;
-        const { concreteType, metadataType } = this.getByTypeId(typeId);
-        yield this.createAggregateType(concreteType, metadataType);
+        let { concreteType, metadataType } = this.getByTypeId(typeId, parentTypeArguments);
+        yield this.createAggregateType(concreteType, metadataType, undefined, parentTypeArguments);
       }
     }
   }
 
-  private createAggregateType(concreteType?: ConcreteTypeV1, metadataType?: MetadataTypeV1, name?: string): AggregateType {
+  private createAggregateType(
+    concreteType?: ConcreteTypeV1,
+    metadataType?: MetadataTypeV1,
+    name?: string,
+    parentTypeArguments: Record<number, string | TypeArgumentV1> = {}
+  ): AggregateType {
+    const typeParameters = metadataType?.typeParameters ?? [];
+    // const typeArguments = concreteType?.typeArguments ?? parentTypeArguments ?? [];
+    const typeArguments = this.createTypeArguments(
+      typeParameters,
+      concreteType?.typeArguments ?? [],
+      parentTypeArguments
+    );
+    const componentArguments = this.createComponentArguments(typeParameters, typeArguments);
+
     return {
       name,
 
-      concreteType: concreteType?.type,
-      concreteTypeId: concreteType?.concreteTypeId,
+      type: metadataType?.type ?? concreteType?.type,
+      // concreteType: concreteType?.type,
+      // concreteTypeId: concreteType?.concreteTypeId,
 
-      metadataType: metadataType?.type,
-      metadataTypeId: metadataType?.metadataTypeId,
+      // metadataType: metadataType?.type,
+      // metadataTypeId: metadataType?.metadataTypeId,
 
-      typeParameters: metadataType?.typeParameters ?? undefined,
-      typeArguments: concreteType?.typeArguments ? Array.from(
-        this.iterator(concreteType.typeArguments)
-      ) : undefined,
+      // typeParameters: metadataType?.typeParameters,
+      // typeArguments: concreteType?.typeArguments,
+
+      componentArguments,
       components: metadataType?.components ? Array.from(
-        this.iterator(metadataType.components)
+        this.iterator(metadataType.components, componentArguments)
       ) : undefined
     }
+  }
+
+  private createComponentArguments(
+    typeParameters: readonly number[],
+    typeArguments: readonly (string | TypeArgumentV1)[]
+  ): Record<number, string | TypeArgumentV1> {
+    return Object.fromEntries(
+      typeParameters.map((typeParameter, index) => {
+        return [typeParameter, typeArguments[index]]
+      })
+    )
+  }
+
+  private createTypeArguments(
+    typeParameters: readonly number[],
+    typeArguments: readonly string[],
+    componentArguments: Record<number, string | TypeArgumentV1>
+  ): readonly (string | TypeArgumentV1)[] {
+    if (typeParameters.length === 0) {
+      return [];
+    }
+
+    if (typeArguments.length) {
+      return typeArguments;
+    }
+
+    console.log('createTypeArguments::typeParameters', typeParameters);
+    console.log('createTypeArguments::componentArguments', componentArguments);
+
+    return Object.values(componentArguments)
   }
 }
 
@@ -91,15 +170,14 @@ const abiPath = 'sway/contract-deep-generics/out/release/contract-deep-generics-
 const abiRaw = readFileSync(join(baseDir, abiPath), 'utf8')
 const abi: JsonAbiV1 = JSON.parse(abiRaw)
 
-const stack: (string | number)[] = []
-abi.functions.forEach((func) => {
-  func.inputs.forEach((param) => stack.push(param.concreteTypeId))
-  stack.push(func.output)
-})
-abi.loggedTypes.forEach((log) => stack.push(log.concreteTypeId))
-abi.messagesTypes.forEach((msg) => stack.push(msg.concreteTypeId))
-abi.configurables.forEach((config) => stack.push(config.concreteTypeId))
-
 const parser = new Parser(abi);
-const types = Array.from(parser.iterator(stack))
-console.log(JSON.stringify(types, null, 2))
+
+const funcs = abi.functions.map((func) => {
+  return {
+    ...func,
+    inputs: Array.from(parser.iteratorFunctionInput(func.inputs)),
+    output: parser.iterator([func.output]).next().value
+  }
+})
+
+console.log(JSON.stringify(funcs, null, 2))
