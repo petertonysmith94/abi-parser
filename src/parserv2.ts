@@ -1,8 +1,10 @@
 import { readFileSync } from "fs";
 import { join } from "path";
-import { ConcreteTypeV1, JsonAbiV1, MetadataTypeV1, TypeArgumentV1 } from "./types";
+import { ComponentV1, ConcreteTypeV1, JsonAbiV1, MetadataTypeV1, TypeArgumentV1 } from "./types";
 
 interface AggregateType {
+  name?: string;
+
   concreteType: string | undefined; // e.g. struct GenericNestedLevelOne<u8>
   concreteTypeId: string | undefined; // e.g. 0x1234
 
@@ -11,6 +13,7 @@ interface AggregateType {
 
   typeParameters?: readonly number[];
   typeArguments?: AggregateType[];
+  components?: AggregateType[];
 }
 
 export class Parser {
@@ -26,32 +29,67 @@ export class Parser {
     })
   }
 
-  public *iterator(inputs: readonly (number | string)[] = []): IterableIterator<AggregateType> {
+  public *iterator(inputs: readonly (number | string | (TypeArgumentV1 | ComponentV1))[] = []): IterableIterator<AggregateType> {
     let element;
     const stack = [...inputs];
+
+    console.log('stack::iterate::length', stack.length);
 
     while (element = stack.pop()) {
       if (!element) {
         return;
       }
 
-      const isConcreteType = typeof element === 'string';
-      const concreteType = isConcreteType ? this.concreteTypes.get(element) : undefined;
+      // It's a component or type argument
+      if (typeof element === 'object') {
+        const component = element as ComponentV1;
 
-      const metadataTypeId = isConcreteType ? concreteType?.metadataTypeId : element;
-      const metadataType = metadataTypeId ? this.metadataTypes.get(metadataTypeId) : undefined;
+        const isConcreteType = typeof component.typeId === 'string';
+        const concreteType = isConcreteType ? this.concreteTypes.get(component.typeId) : undefined;
 
-      yield {
-        concreteType: concreteType?.type,
-        concreteTypeId: concreteType?.concreteTypeId,
+        const metadataTypeId = isConcreteType ? concreteType?.metadataTypeId : component.typeId;
+        const metadataType = metadataTypeId ? this.metadataTypes.get(metadataTypeId) : undefined;
 
-        metadataType: metadataType?.type,
-        metadataTypeId: metadataTypeId,
+        // return;
+        yield {
+          name: component.name,
 
-        typeParameters: metadataType?.typeParameters ?? undefined,
-        typeArguments: concreteType?.typeArguments ? Array.from(
-          this.iterator(concreteType.typeArguments)
-        ) : undefined
+          concreteType: concreteType?.type,
+          concreteTypeId: concreteType?.concreteTypeId,
+  
+          metadataType: metadataType?.type,
+          metadataTypeId: metadataTypeId,
+  
+          typeParameters: metadataType?.typeParameters ?? undefined,
+          typeArguments: concreteType?.typeArguments ? Array.from(
+            this.iterator(concreteType.typeArguments)
+          ) : undefined,
+          components: metadataType?.components ? Array.from(
+            this.iterator(metadataType.components)
+          ) : undefined
+        }
+      } else {
+        const isConcreteType = typeof element === 'string';
+        const concreteType = isConcreteType ? this.concreteTypes.get(element) : undefined;
+
+        const metadataTypeId = isConcreteType ? concreteType?.metadataTypeId : element;
+        const metadataType = metadataTypeId ? this.metadataTypes.get(metadataTypeId) : undefined;
+
+        yield {
+          concreteType: concreteType?.type,
+          concreteTypeId: concreteType?.concreteTypeId,
+
+          metadataType: metadataType?.type,
+          metadataTypeId: metadataTypeId,
+
+          typeParameters: metadataType?.typeParameters ?? undefined,
+          typeArguments: concreteType?.typeArguments ? Array.from(
+            this.iterator(concreteType.typeArguments)
+          ) : undefined,
+          components: metadataType?.components ? Array.from(
+            this.iterator(metadataType.components)
+          ) : undefined
+        }
       }
     }
   }
