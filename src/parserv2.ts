@@ -51,23 +51,7 @@ export class Parser {
         const metadataType = metadataTypeId ? this.metadataTypes.get(metadataTypeId) : undefined;
 
         // return;
-        yield {
-          name: component.name,
-
-          concreteType: concreteType?.type,
-          concreteTypeId: concreteType?.concreteTypeId,
-  
-          metadataType: metadataType?.type,
-          metadataTypeId: metadataTypeId,
-  
-          typeParameters: metadataType?.typeParameters ?? undefined,
-          typeArguments: concreteType?.typeArguments ? Array.from(
-            this.iterator(concreteType.typeArguments)
-          ) : undefined,
-          components: metadataType?.components ? Array.from(
-            this.iterator(metadataType.components)
-          ) : undefined
-        }
+        yield this.createAggregateType(concreteType, metadataType, component.name);
       } else {
         const isConcreteType = typeof element === 'string';
         const concreteType = isConcreteType ? this.concreteTypes.get(element) : undefined;
@@ -75,22 +59,28 @@ export class Parser {
         const metadataTypeId = isConcreteType ? concreteType?.metadataTypeId : element;
         const metadataType = metadataTypeId ? this.metadataTypes.get(metadataTypeId) : undefined;
 
-        yield {
-          concreteType: concreteType?.type,
-          concreteTypeId: concreteType?.concreteTypeId,
-
-          metadataType: metadataType?.type,
-          metadataTypeId: metadataTypeId,
-
-          typeParameters: metadataType?.typeParameters ?? undefined,
-          typeArguments: concreteType?.typeArguments ? Array.from(
-            this.iterator(concreteType.typeArguments)
-          ) : undefined,
-          components: metadataType?.components ? Array.from(
-            this.iterator(metadataType.components)
-          ) : undefined
-        }
+        yield this.createAggregateType(concreteType, metadataType);
       }
+    }
+  }
+
+  private createAggregateType(concreteType?: ConcreteTypeV1, metadataType?: MetadataTypeV1, name?: string): AggregateType {
+    return {
+      name,
+
+      concreteType: concreteType?.type,
+      concreteTypeId: concreteType?.concreteTypeId,
+
+      metadataType: metadataType?.type,
+      metadataTypeId: metadataType?.metadataTypeId,
+
+      typeParameters: metadataType?.typeParameters ?? undefined,
+      typeArguments: concreteType?.typeArguments ? Array.from(
+        this.iterator(concreteType.typeArguments)
+      ) : undefined,
+      components: metadataType?.components ? Array.from(
+        this.iterator(metadataType.components)
+      ) : undefined
     }
   }
 }
