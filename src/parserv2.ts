@@ -9,7 +9,8 @@ interface AggregateType {
   metadataType: string | undefined; // e.g. struct GenericNestedLevelOne
   metadataTypeId: number | undefined; // e.g. 0x1234
 
-  typeArguments: AggregateType[];
+  typeParameters?: readonly number[];
+  typeArguments?: AggregateType[];
 }
 
 export class Parser {
@@ -35,11 +36,11 @@ export class Parser {
       }
 
       const isConcreteType = typeof element === 'string';
-      const concreteType = isConcreteType ? this.concreteTypes.get(element) : null;
+      const concreteType = isConcreteType ? this.concreteTypes.get(element) : undefined;
 
       const metadataTypeId = isConcreteType ? concreteType?.metadataTypeId : element;
-      const metadataType = metadataTypeId ? this.metadataTypes.get(metadataTypeId) : null;
-      
+      const metadataType = metadataTypeId ? this.metadataTypes.get(metadataTypeId) : undefined;
+
       yield {
         concreteType: concreteType?.type,
         concreteTypeId: concreteType?.concreteTypeId,
@@ -47,9 +48,10 @@ export class Parser {
         metadataType: metadataType?.type,
         metadataTypeId: metadataTypeId,
 
-        typeArguments: Array.from(
-          this.iterator(concreteType?.typeArguments ?? [])
-        )
+        typeParameters: metadataType?.typeParameters ?? undefined,
+        typeArguments: concreteType?.typeArguments ? Array.from(
+          this.iterator(concreteType.typeArguments)
+        ) : undefined
       }
     }
   }
