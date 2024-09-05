@@ -1,5 +1,4 @@
 [workspace]
 members = [
-  "./contract-tuple",
-  "./contract-tuple-alias",
+  "./contract-deep-generics",
 ]
