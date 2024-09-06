@@ -77,8 +77,6 @@ export class Parser {
     let element;
     const stack = [...inputs];
 
-    console.log('stack::iterate::length', stack.length);
-
     while (element = stack.pop()) {
       if (!element) {
         return;
@@ -115,8 +113,8 @@ export class Parser {
 
     return {
       name,
-
       type: metadataType?.type ?? concreteType?.type,
+      typeId: concreteType?.concreteTypeId ?? metadataType?.metadataTypeId,
       // concreteType: concreteType?.type,
       // concreteTypeId: concreteType?.concreteTypeId,
 
@@ -125,8 +123,9 @@ export class Parser {
 
       // typeParameters: metadataType?.typeParameters,
       // typeArguments: concreteType?.typeArguments,
-
-      componentArguments,
+      // typeArguments,
+      // componentArguments,
+      // parentTypeArguments,
       components: metadataType?.components ? Array.from(
         this.iterator(metadataType.components, componentArguments)
       ) : undefined
@@ -157,10 +156,7 @@ export class Parser {
       return typeArguments;
     }
 
-    console.log('createTypeArguments::typeParameters', typeParameters);
-    console.log('createTypeArguments::componentArguments', componentArguments);
-
-    return Object.values(componentArguments)
+    return Object.values(componentArguments).splice(0, typeParameters.length);
   }
 }
 
@@ -180,4 +176,4 @@ const funcs = abi.functions.map((func) => {
   }
 })
 
-console.log(JSON.stringify(funcs, null, 2))
+console.log(JSON.stringify(funcs[0].inputs[0], null, 2))

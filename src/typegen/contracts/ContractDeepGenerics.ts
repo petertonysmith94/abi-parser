@@ -21,10 +21,14 @@ import type {
   InvokeFunction,
 } from 'fuels';
 
-export type GenericNestedLevelOneInput<One> = { one: GenericNestedLevelTwoInput<One> };
-export type GenericNestedLevelOneOutput<One> = { one: GenericNestedLevelTwoOutput<One> };
-export type GenericNestedLevelTwoInput<Two> = { two: Two };
-export type GenericNestedLevelTwoOutput<Two> = GenericNestedLevelTwoInput<Two>;
+export type GenericNestedLevelFourInput<Four> = { four: Four };
+export type GenericNestedLevelFourOutput<Four> = GenericNestedLevelFourInput<Four>;
+export type GenericNestedLevelOneInput<One, OneOne> = { one: GenericNestedLevelTwoInput<One>, one_one: OneOne };
+export type GenericNestedLevelOneOutput<One, OneOne> = { one: GenericNestedLevelTwoOutput<One>, one_one: OneOne };
+export type GenericNestedLevelThreeInput<Three> = { three: GenericNestedLevelFourInput<Three> };
+export type GenericNestedLevelThreeOutput<Three> = { three: GenericNestedLevelFourOutput<Three> };
+export type GenericNestedLevelTwoInput<Two> = { two: GenericNestedLevelThreeInput<Two> };
+export type GenericNestedLevelTwoOutput<Two> = { two: GenericNestedLevelThreeOutput<Two> };
 
 const abi = {
   "programType": "contract",
@@ -36,12 +40,17 @@ const abi = {
       "concreteTypeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
     },
     {
-      "type": "struct GenericNestedLevelOne<u8>",
-      "concreteTypeId": "a8fccc38f83652e6552bc2465f0f653f7176dfc30f06b930be98b6e2839e421d",
-      "metadataTypeId": 2,
+      "type": "struct GenericNestedLevelOne<u8,u16>",
+      "concreteTypeId": "8c9d832f70d0f67a529fde8c69ac83de791725c3010ea1647b8d62f3816abbdc",
+      "metadataTypeId": 6,
       "typeArguments": [
-        "c89951a24c6ca28c13fd1cfdc646b2b656d69e61a92b91023be7eb58eb914b6b"
+        "c89951a24c6ca28c13fd1cfdc646b2b656d69e61a92b91023be7eb58eb914b6b",
+        "29881aad8730c5ab11d275376323d8e4ff4179aae8ccb6c13fe4902137e162ef"
       ]
+    },
+    {
+      "type": "u16",
+      "concreteTypeId": "29881aad8730c5ab11d275376323d8e4ff4179aae8ccb6c13fe4902137e162ef"
     },
     {
       "type": "u8",
@@ -50,26 +59,32 @@ const abi = {
   ],
   "metadataTypes": [
     {
-      "type": "generic One",
+      "type": "generic Four",
       "metadataTypeId": 0
     },
     {
-      "type": "generic Two",
+      "type": "generic One",
       "metadataTypeId": 1
     },
     {
-      "type": "struct GenericNestedLevelOne",
-      "metadataTypeId": 2,
+      "type": "generic OneOne",
+      "metadataTypeId": 2
+    },
+    {
+      "type": "generic Three",
+      "metadataTypeId": 3
+    },
+    {
+      "type": "generic Two",
+      "metadataTypeId": 4
+    },
+    {
+      "type": "struct GenericNestedLevelFour",
+      "metadataTypeId": 5,
       "components": [
         {
-          "name": "one",
-          "typeId": 3,
-          "typeArguments": [
-            {
-              "name": "",
-              "typeId": 0
-            }
-          ]
+          "name": "four",
+          "typeId": 0
         }
       ],
       "typeParameters": [
@@ -77,16 +92,65 @@ const abi = {
       ]
     },
     {
-      "type": "struct GenericNestedLevelTwo",
-      "metadataTypeId": 3,
+      "type": "struct GenericNestedLevelOne",
+      "metadataTypeId": 6,
       "components": [
         {
-          "name": "two",
-          "typeId": 1
+          "name": "one",
+          "typeId": 8,
+          "typeArguments": [
+            {
+              "name": "",
+              "typeId": 1
+            }
+          ]
+        },
+        {
+          "name": "one_one",
+          "typeId": 2
         }
       ],
       "typeParameters": [
-        1
+        1,
+        2
+      ]
+    },
+    {
+      "type": "struct GenericNestedLevelThree",
+      "metadataTypeId": 7,
+      "components": [
+        {
+          "name": "three",
+          "typeId": 5,
+          "typeArguments": [
+            {
+              "name": "",
+              "typeId": 3
+            }
+          ]
+        }
+      ],
+      "typeParameters": [
+        3
+      ]
+    },
+    {
+      "type": "struct GenericNestedLevelTwo",
+      "metadataTypeId": 8,
+      "components": [
+        {
+          "name": "two",
+          "typeId": 7,
+          "typeArguments": [
+            {
+              "name": "",
+              "typeId": 4
+            }
+          ]
+        }
+      ],
+      "typeParameters": [
+        4
       ]
     }
   ],
@@ -95,7 +159,7 @@ const abi = {
       "inputs": [
         {
           "name": "arg1",
-          "concreteTypeId": "a8fccc38f83652e6552bc2465f0f653f7176dfc30f06b930be98b6e2839e421d"
+          "concreteTypeId": "8c9d832f70d0f67a529fde8c69ac83de791725c3010ea1647b8d62f3816abbdc"
         }
       ],
       "name": "generic",
@@ -126,7 +190,7 @@ export class ContractDeepGenerics extends Contract {
 
   declare interface: ContractDeepGenericsInterface;
   declare functions: {
-    generic: InvokeFunction<[arg1: GenericNestedLevelOneInput<BigNumberish>], void>;
+    generic: InvokeFunction<[arg1: GenericNestedLevelOneInput<BigNumberish, BigNumberish>], void>;
   };
 
   constructor(
